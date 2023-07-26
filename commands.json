@@ -1,0 +1,20 @@
+[
+    {
+        "name": "ping",
+        "type": 1,
+        "description": "Say pong!"
+    },
+    {
+        "name": "frinkiac",
+        "type": 1,
+        "description": "Get caption from Frinkiac based on query",
+        "options": [
+            {
+                "type": 3,
+                "name": "query",
+                "description": "search query",
+                "required": true
+            }
+        ]
+    }
+]
