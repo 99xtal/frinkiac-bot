@@ -48,6 +48,7 @@ var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.Interac
 			optionMap[option.Name] = option
 		}
 
+		frameIndex := 0;
 		searchQuery := optionMap["query"]
 		frames, err := frinkiacClient.Search(searchQuery.StringValue())
 		if err != nil {
@@ -68,10 +69,35 @@ var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.Interac
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
+				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
 					{
 						Image: &discordgo.MessageEmbedImage{
-							URL: frames[0].GetPhotoUrl(),
+							URL: frames[frameIndex].GetPhotoUrl(),
+						},
+					},
+				},
+				Content: frames[frameIndex].Episode,
+				Components: []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Style: discordgo.SecondaryButton,
+								Label: "Previous",
+								CustomID: "previous_result",
+								Disabled: frameIndex == 0,
+							},
+							discordgo.Button{
+								Style: discordgo.SecondaryButton,
+								Label: "Next",
+								CustomID: "next_result",
+								Disabled: frameIndex == len(frames) - 1,
+							},
+							discordgo.Button{
+								Style: discordgo.PrimaryButton,
+								Label: "Send",
+								CustomID: "send_frame",
+							},
 						},
 					},
 				},
