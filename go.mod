@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/noisemaster/frinkiacapigo v0.0.0-20180409185737-a57fd0f9c50d
 )
 
 require (

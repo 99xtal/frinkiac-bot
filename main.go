@@ -7,11 +7,12 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/99xtal/frinkiac-bot/frinkiac"
 	"github.com/bwmarrin/discordgo"
-	frinkiac "github.com/noisemaster/frinkiacapigo"
 )
 
 var s *discordgo.Session
+var frinkiacClient *frinkiac.FrinkiacClient
 var err error
 
 var (
@@ -47,7 +48,8 @@ var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.Interac
 			optionMap[option.Name] = option
 		}
 
-		frame, err := frinkiac.GetFrinkiacFrame(optionMap["query"].StringValue())
+		searchQuery := optionMap["query"]
+		frames, err := frinkiacClient.Search(searchQuery.StringValue())
 		if err != nil {
 			return err
 		}
@@ -58,7 +60,7 @@ var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.Interac
 				Embeds: []*discordgo.MessageEmbed{
 					{
 						Image: &discordgo.MessageEmbedImage{
-							URL: frame,
+							URL: frames[0].GetPhotoUrl(),
 						},
 					},
 				},
@@ -75,6 +77,8 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	frinkiacClient = frinkiac.NewFrinkiacClient()
 
 	registerCommands()
 }
