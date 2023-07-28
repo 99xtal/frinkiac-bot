@@ -54,6 +54,17 @@ var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.Interac
 			return err
 		}
 
+		if len(frames) == 0 {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "No frames found for search query: '" + searchQuery.StringValue() +"'",
+					Flags: discordgo.MessageFlagsEphemeral,
+				},
+			})
+			return nil
+		}
+
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
