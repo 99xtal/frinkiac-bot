@@ -20,22 +20,7 @@ var (
 	botAPIToken = os.Getenv("DISCORD_API_TOKEN")
 )
 
-type InteractionSession struct {
-	cursor	int;
-	frames []frinkiac.Frame
-}
-
-func (s *InteractionSession) cursorNext() {
-	s.cursor += 1;
-}
-
-func (s *InteractionSession) cursorPrev() {
-	if s.cursor > 0 {
-		s.cursor -= 1;
-	}
-}
-
-var interactionSessions map[string]*InteractionSession;
+var interactionSessions map[string]*FrinkiacSession;
 
 func registerCommands() error {
 	data, err := os.ReadFile("commands.json")
@@ -58,79 +43,28 @@ func registerCommands() error {
 	return err
 }
 
-func createFrinkiacSession(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption)
-	for _, option := range(i.ApplicationCommandData().Options) {
-		optionMap[option.Name] = option
-	}
-
-	frameIndex := 0;
-	searchQuery := optionMap["query"]
-	frames, err := frinkiacClient.Search(searchQuery.StringValue())
-	if err != nil {
-		return err
-	}
-
-	log.Println(i.ID)
-	interactionSessions[i.ID] = &InteractionSession{
-		cursor: 0,
-		frames: frames,
-	}
-
-	if len(frames) == 0 {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "No frames found for search query: '" + searchQuery.StringValue() +"'",
-				Flags: discordgo.MessageFlagsEphemeral,
-			},
-		})
-		return nil
-	}
-
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Flags: discordgo.MessageFlagsEphemeral,
-			Embeds: []*discordgo.MessageEmbed{
-				{
-					Image: &discordgo.MessageEmbedImage{
-						URL: frames[frameIndex].GetPhotoUrl(),
-					},
-				},
-			},
-			Content: frames[frameIndex].Episode,
-			Components: []discordgo.MessageComponent{
-				discordgo.ActionsRow{
-					Components: []discordgo.MessageComponent{
-						discordgo.Button{
-							Style: discordgo.SecondaryButton,
-							Label: "Previous",
-							CustomID: "previous_result",
-							Disabled: frameIndex == 0,
-						},
-						discordgo.Button{
-							Style: discordgo.SecondaryButton,
-							Label: "Next",
-							CustomID: "next_result",
-							Disabled: frameIndex == len(frames) - 1,
-						},
-						discordgo.Button{
-							Style: discordgo.PrimaryButton,
-							Label: "Send",
-							CustomID: "send_frame",
-						},
-					},
-				},
-			},
-		},
-	})
-
-	return nil	
-}
-
 var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	"frinkiac": createFrinkiacSession,
+	"frinkiac": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption)
+		for _, option := range(i.ApplicationCommandData().Options) {
+			optionMap[option.Name] = option
+		}
+	
+		searchQuery := optionMap["query"]
+		session, err := NewFrinkiacSession(searchQuery.StringValue(), s)
+		if err != nil {
+			return err
+		}
+		interactionSessions[i.ID] = session
+	
+		if len(session.searchResults) == 0 {
+			session.RespondWithEphemeralError(i.Interaction, "No frames found for search query: '" + searchQuery.StringValue() +"'")
+			return nil
+		}
+	
+		session.RespondWithNewEditView(i.Interaction)
+		return nil	
+	},
 }
 
 func init() {
@@ -141,7 +75,7 @@ func init() {
 	}
 
 	frinkiacClient = frinkiac.NewFrinkiacClient()
-	interactionSessions = make(map[string]*InteractionSession)
+	interactionSessions = make(map[string]*FrinkiacSession)
 
 	registerCommands()
 }
@@ -160,101 +94,18 @@ func main() {
 				log.Printf("Error: %v", err)
 			}
 		case discordgo.InteractionMessageComponent:
-			interactionSessionData := interactionSessions[i.Message.Interaction.ID]
+			messageSession := interactionSessions[i.Message.Interaction.ID]
 
 			switch i.MessageComponentData().CustomID {
 			case "next_result":
-				interactionSessions[i.Message.Interaction.ID].cursorNext()	
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseUpdateMessage,
-					Data: &discordgo.InteractionResponseData{
-						Flags: discordgo.MessageFlagsEphemeral,
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Image: &discordgo.MessageEmbedImage{
-									URL: interactionSessionData.frames[interactionSessionData.cursor].GetPhotoUrl(),
-								},
-							},
-						},
-						Content: interactionSessionData.frames[interactionSessionData.cursor].Episode,
-						Components: []discordgo.MessageComponent{
-							discordgo.ActionsRow{
-								Components: []discordgo.MessageComponent{
-									discordgo.Button{
-										Style: discordgo.SecondaryButton,
-										Label: "Previous",
-										CustomID: "previous_result",
-										Disabled: interactionSessionData.cursor == 0,
-									},
-									discordgo.Button{
-										Style: discordgo.SecondaryButton,
-										Label: "Next",
-										CustomID: "next_result",
-										Disabled: interactionSessionData.cursor == len(interactionSessionData.frames) - 1,
-									},
-									discordgo.Button{
-										Style: discordgo.PrimaryButton,
-										Label: "Send",
-										CustomID: "send_frame",
-									},
-								},
-							},
-						},
-					},
-				})
+				messageSession.NextPage()
+				messageSession.UpdateEditView(i.Interaction)
 			case "previous_result":
-				interactionSessionData.cursorPrev()
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseUpdateMessage,
-					Data: &discordgo.InteractionResponseData{
-						Flags: discordgo.MessageFlagsEphemeral,
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Image: &discordgo.MessageEmbedImage{
-									URL: interactionSessionData.frames[interactionSessionData.cursor].GetPhotoUrl(),
-								},
-							},
-						},
-						Content: interactionSessionData.frames[interactionSessionData.cursor].Episode,
-						Components: []discordgo.MessageComponent{
-							discordgo.ActionsRow{
-								Components: []discordgo.MessageComponent{
-									discordgo.Button{
-										Style: discordgo.SecondaryButton,
-										Label: "Previous",
-										CustomID: "previous_result",
-										Disabled: interactionSessionData.cursor == 0,
-									},
-									discordgo.Button{
-										Style: discordgo.SecondaryButton,
-										Label: "Next",
-										CustomID: "next_result",
-										Disabled: interactionSessionData.cursor == len(interactionSessionData.frames) - 1,
-									},
-									discordgo.Button{
-										Style: discordgo.PrimaryButton,
-										Label: "Send",
-										CustomID: "send_frame",
-									},
-								},
-							},
-						},
-					},
-				})
+				messageSession.PrevPage()
+				messageSession.UpdateEditView(i.Interaction)
 			case "send_frame":
 				s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Image: &discordgo.MessageEmbedImage{
-									URL: interactionSessionData.frames[interactionSessionData.cursor].GetPhotoUrl(),
-								},
-							},
-						},
-					},
-				})	
+				messageSession.SubmitFrame(i.Interaction)
 			}
 		}
 	})

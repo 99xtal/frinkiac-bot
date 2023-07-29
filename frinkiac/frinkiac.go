@@ -23,8 +23,8 @@ func (f *Frame) GetPhotoUrl() string {
 
 type FrinkiacClient struct {}
 
-func (f *FrinkiacClient) Search(query string) ([]Frame, error) {
-	var info []Frame
+func (f *FrinkiacClient) Search(query string) ([]*Frame, error) {
+	var info []*Frame
 	req, err := http.NewRequest("GET", "https://frinkiac.com/api/search?q="+url.QueryEscape(query), nil)
 	if err != nil {
 		return info, err
