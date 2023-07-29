@@ -20,6 +20,23 @@ var (
 	botAPIToken = os.Getenv("DISCORD_API_TOKEN")
 )
 
+type InteractionSession struct {
+	cursor	int;
+	frames []frinkiac.Frame
+}
+
+func (s *InteractionSession) cursorNext() {
+	s.cursor += 1;
+}
+
+func (s *InteractionSession) cursorPrev() {
+	if s.cursor > 0 {
+		s.cursor -= 1;
+	}
+}
+
+var interactionSessions map[string]*InteractionSession;
+
 func registerCommands() error {
 	data, err := os.ReadFile("commands.json")
 	if err != nil {
@@ -41,71 +58,79 @@ func registerCommands() error {
 	return err
 }
 
-var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	"frinkiac": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption)
-		for _, option := range(i.ApplicationCommandData().Options) {
-			optionMap[option.Name] = option
-		}
+func createFrinkiacSession(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption)
+	for _, option := range(i.ApplicationCommandData().Options) {
+		optionMap[option.Name] = option
+	}
 
-		frameIndex := 0;
-		searchQuery := optionMap["query"]
-		frames, err := frinkiacClient.Search(searchQuery.StringValue())
-		if err != nil {
-			return err
-		}
+	frameIndex := 0;
+	searchQuery := optionMap["query"]
+	frames, err := frinkiacClient.Search(searchQuery.StringValue())
+	if err != nil {
+		return err
+	}
 
-		if len(frames) == 0 {
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "No frames found for search query: '" + searchQuery.StringValue() +"'",
-					Flags: discordgo.MessageFlagsEphemeral,
-				},
-			})
-			return nil
-		}
+	log.Println(i.ID)
+	interactionSessions[i.ID] = &InteractionSession{
+		cursor: 0,
+		frames: frames,
+	}
 
+	if len(frames) == 0 {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
+				Content: "No frames found for search query: '" + searchQuery.StringValue() +"'",
 				Flags: discordgo.MessageFlagsEphemeral,
-				Embeds: []*discordgo.MessageEmbed{
-					{
-						Image: &discordgo.MessageEmbedImage{
-							URL: frames[frameIndex].GetPhotoUrl(),
-						},
+			},
+		})
+		return nil
+	}
+
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Flags: discordgo.MessageFlagsEphemeral,
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Image: &discordgo.MessageEmbedImage{
+						URL: frames[frameIndex].GetPhotoUrl(),
 					},
 				},
-				Content: frames[frameIndex].Episode,
-				Components: []discordgo.MessageComponent{
-					discordgo.ActionsRow{
-						Components: []discordgo.MessageComponent{
-							discordgo.Button{
-								Style: discordgo.SecondaryButton,
-								Label: "Previous",
-								CustomID: "previous_result",
-								Disabled: frameIndex == 0,
-							},
-							discordgo.Button{
-								Style: discordgo.SecondaryButton,
-								Label: "Next",
-								CustomID: "next_result",
-								Disabled: frameIndex == len(frames) - 1,
-							},
-							discordgo.Button{
-								Style: discordgo.PrimaryButton,
-								Label: "Send",
-								CustomID: "send_frame",
-							},
+			},
+			Content: frames[frameIndex].Episode,
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						discordgo.Button{
+							Style: discordgo.SecondaryButton,
+							Label: "Previous",
+							CustomID: "previous_result",
+							Disabled: frameIndex == 0,
+						},
+						discordgo.Button{
+							Style: discordgo.SecondaryButton,
+							Label: "Next",
+							CustomID: "next_result",
+							Disabled: frameIndex == len(frames) - 1,
+						},
+						discordgo.Button{
+							Style: discordgo.PrimaryButton,
+							Label: "Send",
+							CustomID: "send_frame",
 						},
 					},
 				},
 			},
-		})
+		},
+	})
 
-		return nil
-	},
+	return nil	
+}
+
+var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	"frinkiac": createFrinkiacSession,
 }
 
 func init() {
@@ -116,22 +141,120 @@ func init() {
 	}
 
 	frinkiacClient = frinkiac.NewFrinkiacClient()
+	interactionSessions = make(map[string]*InteractionSession)
 
 	registerCommands()
 }
 
 func main() {
-	defer s.Close()
 	s.AddHandler(func (s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("Bot is running")
 	})
 
 	s.AddHandler(func (s *discordgo.Session, i *discordgo.InteractionCreate) {
+		log.Println("InteractionCreate", i.AppID, i.Type.String())
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
-			err = commandHandlers[i.ApplicationCommandData().Name](s, i)
+			err = applicationCommandHandlers[i.ApplicationCommandData().Name](s, i)
 			if err != nil {
 				log.Printf("Error: %v", err)
+			}
+		case discordgo.InteractionMessageComponent:
+			interactionSessionData := interactionSessions[i.Message.Interaction.ID]
+
+			switch i.MessageComponentData().CustomID {
+			case "next_result":
+				interactionSessions[i.Message.Interaction.ID].cursorNext()	
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseUpdateMessage,
+					Data: &discordgo.InteractionResponseData{
+						Flags: discordgo.MessageFlagsEphemeral,
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Image: &discordgo.MessageEmbedImage{
+									URL: interactionSessionData.frames[interactionSessionData.cursor].GetPhotoUrl(),
+								},
+							},
+						},
+						Content: interactionSessionData.frames[interactionSessionData.cursor].Episode,
+						Components: []discordgo.MessageComponent{
+							discordgo.ActionsRow{
+								Components: []discordgo.MessageComponent{
+									discordgo.Button{
+										Style: discordgo.SecondaryButton,
+										Label: "Previous",
+										CustomID: "previous_result",
+										Disabled: interactionSessionData.cursor == 0,
+									},
+									discordgo.Button{
+										Style: discordgo.SecondaryButton,
+										Label: "Next",
+										CustomID: "next_result",
+										Disabled: interactionSessionData.cursor == len(interactionSessionData.frames) - 1,
+									},
+									discordgo.Button{
+										Style: discordgo.PrimaryButton,
+										Label: "Send",
+										CustomID: "send_frame",
+									},
+								},
+							},
+						},
+					},
+				})
+			case "previous_result":
+				interactionSessionData.cursorPrev()
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseUpdateMessage,
+					Data: &discordgo.InteractionResponseData{
+						Flags: discordgo.MessageFlagsEphemeral,
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Image: &discordgo.MessageEmbedImage{
+									URL: interactionSessionData.frames[interactionSessionData.cursor].GetPhotoUrl(),
+								},
+							},
+						},
+						Content: interactionSessionData.frames[interactionSessionData.cursor].Episode,
+						Components: []discordgo.MessageComponent{
+							discordgo.ActionsRow{
+								Components: []discordgo.MessageComponent{
+									discordgo.Button{
+										Style: discordgo.SecondaryButton,
+										Label: "Previous",
+										CustomID: "previous_result",
+										Disabled: interactionSessionData.cursor == 0,
+									},
+									discordgo.Button{
+										Style: discordgo.SecondaryButton,
+										Label: "Next",
+										CustomID: "next_result",
+										Disabled: interactionSessionData.cursor == len(interactionSessionData.frames) - 1,
+									},
+									discordgo.Button{
+										Style: discordgo.PrimaryButton,
+										Label: "Send",
+										CustomID: "send_frame",
+									},
+								},
+							},
+						},
+					},
+				})
+			case "send_frame":
+				s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Image: &discordgo.MessageEmbedImage{
+									URL: interactionSessionData.frames[interactionSessionData.cursor].GetPhotoUrl(),
+								},
+							},
+						},
+					},
+				})	
 			}
 		}
 	})
