@@ -9,6 +9,7 @@ type FrinkiacSession struct {
 	session	 *discordgo.Session
 	client *api.FrinkiacClient
 	cursor int
+	memeMode bool
 	searchResults []*api.Frame
 }
 
@@ -24,6 +25,10 @@ func (s *FrinkiacSession) PrevPage() {
 	}
 }
 
+func (s *FrinkiacSession) toggleMemeMode() {
+	s.memeMode = !s.memeMode;
+}
+
 func (s *FrinkiacSession) RespondWithEphemeralError(i *discordgo.Interaction, errorText string) {
 	s.session.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -34,99 +39,47 @@ func (s *FrinkiacSession) RespondWithEphemeralError(i *discordgo.Interaction, er
 	})
 }
 
-func (s *FrinkiacSession) RespondWithNewEditView(i *discordgo.Interaction) {
+func (s *FrinkiacSession) CreateMessagePreview(i *discordgo.Interaction) {
 	currentFrame := s.searchResults[s.cursor]
 	s.session.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Flags: discordgo.MessageFlagsEphemeral,
 			Embeds: []*discordgo.MessageEmbed{
-				{
-					Image: &discordgo.MessageEmbedImage{
-						URL: currentFrame.GetPhotoUrl(),
-					},				
-				},
+				ImageLinkEmbed(currentFrame.GetPhotoUrl()),
 			},
 			Content: currentFrame.Episode,
 			Components: []discordgo.MessageComponent{
-				discordgo.ActionsRow{
-					Components: []discordgo.MessageComponent{
-						discordgo.Button{
-							Style: discordgo.SecondaryButton,
-							Label: "Previous",
-							CustomID: "previous_result",
-							Disabled: s.cursor == 0,
-						},
-						discordgo.Button{
-							Style: discordgo.SecondaryButton,
-							Label: "Next",
-							CustomID: "next_result",
-							Disabled: s.cursor == len(s.searchResults) - 1,
-						},
-						discordgo.Button{
-							Style: discordgo.PrimaryButton,
-							Label: "Send",
-							CustomID: "send_frame",
-						},
-					},
-				},
+				PreviewActionsComponent(s.cursor == 0, s.cursor == len(s.searchResults) - 1),
 			},
 		},
 	})
 }
 
-func (s *FrinkiacSession) UpdateEditView(i *discordgo.Interaction) {
+func (s *FrinkiacSession) UpdateMessagePreview(i *discordgo.Interaction) {
 	currentFrame := s.searchResults[s.cursor]
 	s.session.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
 		Data: &discordgo.InteractionResponseData{
 			Flags: discordgo.MessageFlagsEphemeral,
 			Embeds: []*discordgo.MessageEmbed{
-				{
-					Image: &discordgo.MessageEmbedImage{
-						URL: currentFrame.GetPhotoUrl(),
-					},
-				},
+				ImageLinkEmbed(currentFrame.GetPhotoUrl()),
 			},
 			Content: currentFrame.Episode,
 			Components: []discordgo.MessageComponent{
-				discordgo.ActionsRow{
-					Components: []discordgo.MessageComponent{
-						discordgo.Button{
-							Style: discordgo.SecondaryButton,
-							Label: "Previous",
-							CustomID: "previous_result",
-							Disabled: s.cursor == 0,
-						},
-						discordgo.Button{
-							Style: discordgo.SecondaryButton,
-							Label: "Next",
-							CustomID: "next_result",
-							Disabled: s.cursor == len(s.searchResults) - 1,
-						},
-						discordgo.Button{
-							Style: discordgo.PrimaryButton,
-							Label: "Send",
-							CustomID: "send_frame",
-						},
-					},
-				},
+				PreviewActionsComponent(s.cursor == 0, s.cursor == len(s.searchResults) - 1),
 			},
 		},
 	})
 }
 
-func (s *FrinkiacSession) SubmitFrame(i *discordgo.Interaction) {
+func (s *FrinkiacSession) SubmitMessage(i *discordgo.Interaction) {
 	currentFrame := s.searchResults[s.cursor]
 	s.session.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{
-				{
-					Image: &discordgo.MessageEmbedImage{
-						URL: currentFrame.GetPhotoUrl(),
-					},
-				},
+				ImageLinkEmbed(currentFrame.GetPhotoUrl()),
 			},
 		},
 	})
@@ -142,5 +95,6 @@ func NewFrinkiacSession(query string, s *discordgo.Session) (*FrinkiacSession, e
 		client: frinkiacClient,
 		cursor: 0,
 		searchResults: frames,
+		memeMode: false,
 	}, nil
 }

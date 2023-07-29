@@ -45,12 +45,7 @@ func registerCommands() error {
 
 var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	"frinkiac": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption)
-		for _, option := range(i.ApplicationCommandData().Options) {
-			optionMap[option.Name] = option
-		}
-	
-		searchQuery := optionMap["query"]
+		searchQuery := i.ApplicationCommandData().Options[0]
 		session, err := NewFrinkiacSession(searchQuery.StringValue(), s)
 		if err != nil {
 			return err
@@ -62,8 +57,29 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 			return nil
 		}
 	
-		session.RespondWithNewEditView(i.Interaction)
+		session.CreateMessagePreview(i.Interaction)
 		return nil	
+	},
+}
+
+var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)  error {
+	"next_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		messageSession := interactionSessions[i.Message.Interaction.ID]
+		messageSession.NextPage()
+		messageSession.UpdateMessagePreview(i.Interaction)
+		return nil
+	},
+	"previous_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		messageSession := interactionSessions[i.Message.Interaction.ID]
+		messageSession.PrevPage()
+		messageSession.UpdateMessagePreview(i.Interaction)
+		return nil
+	},
+	"send_frame": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		messageSession := interactionSessions[i.Message.Interaction.ID]
+		s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
+		messageSession.SubmitMessage(i.Interaction)	
+		return nil
 	},
 }
 
@@ -94,18 +110,9 @@ func main() {
 				log.Printf("Error: %v", err)
 			}
 		case discordgo.InteractionMessageComponent:
-			messageSession := interactionSessions[i.Message.Interaction.ID]
-
-			switch i.MessageComponentData().CustomID {
-			case "next_result":
-				messageSession.NextPage()
-				messageSession.UpdateEditView(i.Interaction)
-			case "previous_result":
-				messageSession.PrevPage()
-				messageSession.UpdateEditView(i.Interaction)
-			case "send_frame":
-				s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
-				messageSession.SubmitFrame(i.Interaction)
+			err = messageComponentHandlers[i.MessageComponentData().CustomID](s, i)
+			if err != nil {
+				log.Printf("Error: %v", err)
 			}
 		}
 	})
