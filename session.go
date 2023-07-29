@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/99xtal/frinkiac-bot/frinkiac"
+	"github.com/99xtal/frinkiac-bot/api"
 	"github.com/bwmarrin/discordgo"
 )
 
 type FrinkiacSession struct {
 	session	 *discordgo.Session
-	client *frinkiac.FrinkiacClient
+	client *api.FrinkiacClient
 	cursor int
-	searchResults []*frinkiac.Frame
+	searchResults []*api.Frame
 }
 
 func (s *FrinkiacSession) NextPage() {

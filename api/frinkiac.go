@@ -1,4 +1,4 @@
-package frinkiac
+package api
 
 import (
 	"encoding/json"

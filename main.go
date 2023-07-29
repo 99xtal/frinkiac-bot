@@ -7,12 +7,12 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/99xtal/frinkiac-bot/frinkiac"
+	"github.com/99xtal/frinkiac-bot/api"
 	"github.com/bwmarrin/discordgo"
 )
 
 var s *discordgo.Session
-var frinkiacClient *frinkiac.FrinkiacClient
+var frinkiacClient *api.FrinkiacClient
 var err error
 
 var (
@@ -74,7 +74,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	frinkiacClient = frinkiac.NewFrinkiacClient()
+	frinkiacClient = api.NewFrinkiacClient()
 	interactionSessions = make(map[string]*FrinkiacSession)
 
 	registerCommands()
