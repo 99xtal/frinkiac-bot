@@ -7,7 +7,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/99xtal/frinkiac-bot/api"
+	"github.com/99xtal/frinkiac-bot/pkg/api"
+	"github.com/99xtal/frinkiac-bot/pkg/session"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -20,7 +21,7 @@ var (
 	botAPIToken = os.Getenv("DISCORD_API_TOKEN")
 )
 
-var interactionSessions map[string]*FrinkiacSession;
+var interactionSessions map[string]*session.FrinkiacSession;
 
 func registerCommands() error {
 	data, err := os.ReadFile("commands.json")
@@ -46,18 +47,18 @@ func registerCommands() error {
 var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	"frinkiac": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		searchQuery := i.ApplicationCommandData().Options[0]
-		session, err := NewFrinkiacSession(searchQuery.StringValue(), s)
+		frinkiacSession, err := session.NewFrinkiacSession(searchQuery.StringValue(), s, frinkiacClient)
 		if err != nil {
 			return err
 		}
-		interactionSessions[i.ID] = session
+		interactionSessions[i.ID] = frinkiacSession
 	
-		if len(session.searchResults) == 0 {
-			session.RespondWithEphemeralError(i.Interaction, "No frames found for search query: '" + searchQuery.StringValue() +"'")
+		if len(frinkiacSession.SearchResults) == 0 {
+			frinkiacSession.RespondWithEphemeralError(i.Interaction, "No frames found for search query: '" + searchQuery.StringValue() +"'")
 			return nil
 		}
 	
-		session.CreateMessagePreview(i.Interaction)
+		frinkiacSession.CreateMessagePreview(i.Interaction)
 		return nil	
 	},
 }
@@ -91,7 +92,7 @@ func init() {
 	}
 
 	frinkiacClient = api.NewFrinkiacClient()
-	interactionSessions = make(map[string]*FrinkiacSession)
+	interactionSessions = make(map[string]*session.FrinkiacSession)
 
 	registerCommands()
 }
