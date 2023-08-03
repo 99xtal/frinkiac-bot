@@ -15,6 +15,7 @@ import (
 
 var s *discordgo.Session
 var frinkiacClient *api.FrinkiacClient
+var sessionManager *session.SessionManager
 var err error
 
 var (
@@ -54,7 +55,7 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 		}
 		frinkiacSession := session.NewFrinkiacSession()
 		frinkiacSession.SearchResults = searchResults
-		interactionSessions[i.ID] = frinkiacSession
+		sessionManager.Set(i.ID, frinkiacSession)
 	
 		if len(frinkiacSession.SearchResults) == 0 {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -85,9 +86,12 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 	},
 }
 
-var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)  error {
+var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	"next_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession := interactionSessions[i.Message.Interaction.ID]
+		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		if err != nil {
+			return err
+		}
 		messageSession.NextPage()
 		currentFrame := messageSession.GetCurrentFrame()
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -103,10 +107,14 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 			},
 		})
+		sessionManager.Set(i.Message.Interaction.ID, messageSession)
 		return nil
 	},
 	"previous_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession := interactionSessions[i.Message.Interaction.ID]
+		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		if err != nil {
+			return err
+		}
 		messageSession.PrevPage()
 		currentFrame := messageSession.GetCurrentFrame()
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -122,10 +130,14 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 			},
 		})
+		sessionManager.Set(i.Message.Interaction.ID, messageSession)
 		return nil
 	},
 	"send_frame": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession := interactionSessions[i.Message.Interaction.ID]
+		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		if err != nil {
+			return err
+		}
 		s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
 		currentFrame := messageSession.GetCurrentFrame()
 
@@ -137,6 +149,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 			},
 		})
+		sessionManager.Set(i.Message.Interaction.ID, messageSession)
 		return nil
 	},
 }
@@ -149,7 +162,7 @@ func init() {
 	}
 
 	frinkiacClient = api.NewFrinkiacClient()
-	interactionSessions = make(map[string]*session.FrinkiacSession)
+	sessionManager = session.NewSessionManager()
 
 	registerCommands()
 }
