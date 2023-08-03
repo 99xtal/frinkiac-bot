@@ -149,7 +149,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 			},
 		})
-		sessionManager.Set(i.Message.Interaction.ID, messageSession)
+		sessionManager.Delete(i.Message.Interaction.ID)
 		return nil
 	},
 }
@@ -173,7 +173,7 @@ func main() {
 	})
 
 	s.AddHandler(func (s *discordgo.Session, i *discordgo.InteractionCreate) {
-		log.Println("InteractionCreate", i.AppID, i.Type.String())
+		log.Println("InteractionCreate", "appID:"+i.AppID, "interactionId:"+i.ID, i.Type.String())
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
 			err = applicationCommandHandlers[i.ApplicationCommandData().Name](s, i)
