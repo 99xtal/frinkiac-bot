@@ -153,8 +153,6 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		return nil
 	},
 	"open_meme_modal": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession, _ := sessionManager.Get(i.Message.Interaction.ID)
-		currentFrame := messageSession.GetCurrentFrame()
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
