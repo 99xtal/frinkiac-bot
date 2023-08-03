@@ -8,6 +8,7 @@ import (
 	"os/signal"
 
 	"github.com/99xtal/frinkiac-bot/pkg/api"
+	"github.com/99xtal/frinkiac-bot/pkg/components"
 	"github.com/99xtal/frinkiac-bot/pkg/session"
 	"github.com/bwmarrin/discordgo"
 )
@@ -47,18 +48,39 @@ func registerCommands() error {
 var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	"frinkiac": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		searchQuery := i.ApplicationCommandData().Options[0]
-		frinkiacSession, err := session.NewFrinkiacSession(searchQuery.StringValue(), s, frinkiacClient)
+		searchResults, err := frinkiacClient.Search(searchQuery.StringValue())
 		if err != nil {
 			return err
 		}
+		frinkiacSession := session.NewFrinkiacSession()
+		frinkiacSession.SearchResults = searchResults
 		interactionSessions[i.ID] = frinkiacSession
 	
 		if len(frinkiacSession.SearchResults) == 0 {
-			frinkiacSession.RespondWithEphemeralError(i.Interaction, "No frames found for search query: '" + searchQuery.StringValue() +"'")
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "No frames found for search query: '" + searchQuery.StringValue() + "'",
+					Flags: discordgo.MessageFlagsEphemeral,
+				},
+			})
 			return nil
 		}
 	
-		frinkiacSession.CreateMessagePreview(i.Interaction)
+		currentFrame := frinkiacSession.GetCurrentFrame() 
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Flags: discordgo.MessageFlagsEphemeral,
+				Embeds: []*discordgo.MessageEmbed{
+					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+				},
+				Content: currentFrame.Episode,
+				Components: []discordgo.MessageComponent{
+					components.PreviewActionsComponent(frinkiacSession.Cursor == 0, frinkiacSession.Cursor == len(frinkiacSession.SearchResults) - 1),
+				},
+			},
+		})
 		return nil	
 	},
 }
@@ -67,19 +89,54 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 	"next_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession := interactionSessions[i.Message.Interaction.ID]
 		messageSession.NextPage()
-		messageSession.UpdateMessagePreview(i.Interaction)
+		currentFrame := messageSession.GetCurrentFrame()
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Flags: discordgo.MessageFlagsEphemeral,
+				Embeds: []*discordgo.MessageEmbed{
+					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+				},
+				Content: currentFrame.Episode,
+				Components: []discordgo.MessageComponent{
+					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
+				},
+			},
+		})
 		return nil
 	},
 	"previous_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession := interactionSessions[i.Message.Interaction.ID]
 		messageSession.PrevPage()
-		messageSession.UpdateMessagePreview(i.Interaction)
+		currentFrame := messageSession.GetCurrentFrame()
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Flags: discordgo.MessageFlagsEphemeral,
+				Embeds: []*discordgo.MessageEmbed{
+					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+				},
+				Content: currentFrame.Episode,
+				Components: []discordgo.MessageComponent{
+					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
+				},
+			},
+		})
 		return nil
 	},
 	"send_frame": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession := interactionSessions[i.Message.Interaction.ID]
 		s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
-		messageSession.SubmitMessage(i.Interaction)	
+		currentFrame := messageSession.GetCurrentFrame()
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: []*discordgo.MessageEmbed{
+					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+				},
+			},
+		})
 		return nil
 	},
 }
