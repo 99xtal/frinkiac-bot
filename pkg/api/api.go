@@ -17,6 +17,35 @@ type Frame struct {
 	Timestamp int    `json:"Timestamp"`
 }
 
+type Episode struct {
+	ID	int	`json:"Id"`
+	Key	string	`json:"Key"`
+	Season	string `json:"Season"`
+	Title	string	`json:"Title"`
+	Director string `json:"Director"`
+	Writer string `json:"Writer"`
+	OriginalAirDate	string	`json:"OriginalAirDate"`
+	WikiLink	string	`json:"WikiLeak"`
+}
+
+type Subtitle struct {
+	ID	int `json:"Id"`
+	RepresentativeTimestamp	string	`json:"RepresentativeTimestamp"`
+	Episode	string	`json:"Episode"`
+	StartTimestamp	string `json:"StartTimestamp"`
+	EndTimestamp	string	`json:"EndTimestamp"`
+	Content	string	`json:"Content"`
+	Language	string `json:"Language"`
+}
+
+type Caption struct {
+	Episode Episode `json:"Epsiode"`
+	Frame	Frame	`json:"Frame"`
+	Subtitles	[]Subtitle	`json:"Subtitles"`
+	Nearby	[]Frame	`json:"Nearby"`
+}
+
+
 func (f *Frame) GetPhotoUrl() string {
 	return fmt.Sprintf("http://frinkiac.com/img/%s/%d.jpg", f.Episode, f.Timestamp)
 }
@@ -42,6 +71,27 @@ func (f *FrinkiacClient) Search(query string) ([]*Frame, error) {
 	json.Unmarshal(body, &info)
 	return info, nil
 }
+
+func (f *FrinkiacClient) GetCaption(episode string, timestamp string) (Caption, error) {
+	var info Caption
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://frinkiac.com/api/caption?e=%s&t=%s", episode, timestamp), nil)
+	if err != nil {
+		return info, err
+	}
+	req.Header.Set("User-Agent", "Frinkiac_Api_Go/0.1")
+	resp, err := client.Do(req)
+	if err != nil {
+		return info, err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return info, err
+	}
+	json.Unmarshal(body, &info)
+	return info, nil
+} 
+
 
 func NewFrinkiacClient() *FrinkiacClient {
 	return &FrinkiacClient{}
