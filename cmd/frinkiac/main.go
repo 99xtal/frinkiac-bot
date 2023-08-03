@@ -152,6 +152,31 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		sessionManager.Delete(i.Message.Interaction.ID)
 		return nil
 	},
+	"open_meme_modal": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		messageSession, _ := sessionManager.Get(i.Message.Interaction.ID)
+		currentFrame := messageSession.GetCurrentFrame()
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseModal,
+			Data: &discordgo.InteractionResponseData{
+				CustomID: "generate_meme_modal",
+				Title: "Generate Meme",
+				Components: []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.TextInput{
+								CustomID:    "caption",
+								Label:       "Meme Text",
+								Style:       discordgo.TextInputParagraph,
+								Placeholder: "",
+								Required:    true,
+							},
+						},
+					},
+				},
+			},
+		})
+		return nil
+	},
 }
 
 func init() {

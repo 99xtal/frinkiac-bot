@@ -27,7 +27,7 @@ func PreviewActionsComponent(startReached bool, endReached bool) discordgo.Messa
 			},
 			discordgo.Button{
 				Style: discordgo.SuccessButton,
-				Label: "Meme",
+				Label: "Make Meme",
 				CustomID: "open_meme_modal",
 			},
 			discordgo.Button{
