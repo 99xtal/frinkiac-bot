@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/99xtal/frinkiac-bot/pkg/utils"
 )
 
 var client = &http.Client{}
@@ -53,7 +55,8 @@ func (f *Frame) GetPhotoUrl() string {
 }
 
 func (f *Frame) GetCaptionPhotoUrl(caption string) string {
-	b64Caption := base64.StdEncoding.EncodeToString([]byte(caption))
+	captionWithNewlines := utils.SquishText(caption, 25)
+	b64Caption := base64.StdEncoding.EncodeToString([]byte(captionWithNewlines))
 	return fmt.Sprintf("http://frinkiac.com/meme/%s/%d.jpg?b64lines=%s", f.Episode, f.Timestamp, b64Caption)
 }
 
