@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -49,6 +50,11 @@ type Caption struct {
 
 func (f *Frame) GetPhotoUrl() string {
 	return fmt.Sprintf("http://frinkiac.com/img/%s/%d.jpg", f.Episode, f.Timestamp)
+}
+
+func (f *Frame) GetCaptionPhotoUrl(caption string) string {
+	b64Caption := base64.StdEncoding.EncodeToString([]byte(caption))
+	return fmt.Sprintf("http://frinkiac.com/meme/%s/%d.jpg?b64lines=%s", f.Episode, f.Timestamp, b64Caption)
 }
 
 type FrinkiacClient struct {}

@@ -203,6 +203,36 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 	},
 }
 
+var modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	"generate_meme_modal": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		if err != nil {
+			return err
+		}
+		currentFrame := messageSession.GetCurrentFrame()
+		modalComponents := i.ModalSubmitData().Components
+		memeCaption := modalComponents[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
+		if err != nil {
+			return err
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Flags: discordgo.MessageFlagsEphemeral,
+				Embeds: []*discordgo.MessageEmbed{
+					components.ImageLinkEmbed(currentFrame.GetCaptionPhotoUrl(memeCaption)),
+				},
+				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
+				Components: []discordgo.MessageComponent{
+					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
+				},
+			},
+		})
+		return nil
+	},
+}
+
 func init() {
 	authorization := fmt.Sprintf("Bot %s", botAPIToken)
 	s, err = discordgo.New(authorization)
@@ -231,6 +261,11 @@ func main() {
 			}
 		case discordgo.InteractionMessageComponent:
 			err = messageComponentHandlers[i.MessageComponentData().CustomID](s, i)
+			if err != nil {
+				log.Printf("Error: %v", err)
+			}
+		case discordgo.InteractionModalSubmit:
+			err = modalSubmitHandlers[i.ModalSubmitData().CustomID](s, i)
 			if err != nil {
 				log.Printf("Error: %v", err)
 			}
