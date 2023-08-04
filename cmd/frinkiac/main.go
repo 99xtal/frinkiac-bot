@@ -75,12 +75,13 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 		frinkiacSession.CurrentFrameCaption = &caption
 	
 		currentFrame := frinkiacSession.GetCurrentFrame() 
+		frinkiacSession.CurrentImageLink = currentFrame.GetPhotoUrl()
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+					components.ImageLinkEmbed(frinkiacSession.CurrentImageLink),
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
@@ -105,13 +106,14 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 			return err
 		}
 		messageSession.CurrentFrameCaption = &caption
+		messageSession.CurrentImageLink = currentFrame.GetPhotoUrl()
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+					components.ImageLinkEmbed(messageSession.CurrentImageLink),
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
@@ -134,13 +136,14 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 			return err
 		}
 		messageSession.CurrentFrameCaption = &caption
+		messageSession.CurrentImageLink = currentFrame.GetPhotoUrl()
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+					components.ImageLinkEmbed(messageSession.CurrentImageLink),
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
@@ -157,13 +160,11 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 			return err
 		}
 		s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
-		currentFrame := messageSession.GetCurrentFrame()
-
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
+					components.ImageLinkEmbed(messageSession.CurrentImageLink),
 				},
 			},
 		})
@@ -217,12 +218,13 @@ var modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.Int
 		if err != nil {
 			return err
 		}
+		messageSession.CurrentImageLink = currentFrame.GetCaptionPhotoUrl(memeCaption)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(currentFrame.GetCaptionPhotoUrl(memeCaption)),
+					components.ImageLinkEmbed(messageSession.CurrentImageLink),
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{

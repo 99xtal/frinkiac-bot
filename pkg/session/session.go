@@ -9,6 +9,7 @@ type FrinkiacSession struct {
 	memeMode bool
 	SearchResults []*api.Frame
 	CurrentFrameCaption *api.Caption
+	CurrentImageLink string
 }
 
 func (s *FrinkiacSession) NextPage() {
