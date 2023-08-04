@@ -20,7 +20,8 @@ type Frame struct {
 type Episode struct {
 	ID	int	`json:"Id"`
 	Key	string	`json:"Key"`
-	Season	string `json:"Season"`
+	Season	int `json:"Season"`
+	EpisodeNumber int `json:"EpisodeNumber"`
 	Title	string	`json:"Title"`
 	Director string `json:"Director"`
 	Writer string `json:"Writer"`
@@ -39,7 +40,7 @@ type Subtitle struct {
 }
 
 type Caption struct {
-	Episode Episode `json:"Epsiode"`
+	Episode Episode `json:"Episode"`
 	Frame	Frame	`json:"Frame"`
 	Subtitles	[]Subtitle	`json:"Subtitles"`
 	Nearby	[]Frame	`json:"Nearby"`

@@ -67,6 +67,11 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 			})
 			return nil
 		}
+
+		caption, err := frinkiacClient.GetCaption(frinkiacSession.GetCurrentFrame().Episode, fmt.Sprint(frinkiacSession.GetCurrentFrame().Timestamp))
+		if err != nil {
+			return err
+		}
 	
 		currentFrame := frinkiacSession.GetCurrentFrame() 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -76,7 +81,7 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 				Embeds: []*discordgo.MessageEmbed{
 					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
 				},
-				Content: currentFrame.Episode,
+				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
 					components.PreviewActionsComponent(frinkiacSession.Cursor == 0, frinkiacSession.Cursor == len(frinkiacSession.SearchResults) - 1),
 				},
@@ -94,6 +99,10 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		}
 		messageSession.NextPage()
 		currentFrame := messageSession.GetCurrentFrame()
+		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
+		if err != nil {
+			return err
+		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -101,7 +110,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				Embeds: []*discordgo.MessageEmbed{
 					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
 				},
-				Content: currentFrame.Episode,
+				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
 					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
 				},
@@ -117,6 +126,10 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		}
 		messageSession.PrevPage()
 		currentFrame := messageSession.GetCurrentFrame()
+		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
+		if err != nil {
+			return err
+		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -124,7 +137,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				Embeds: []*discordgo.MessageEmbed{
 					components.ImageLinkEmbed(currentFrame.GetPhotoUrl()),
 				},
-				Content: currentFrame.Episode,
+				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
 					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
 				},
@@ -153,6 +166,19 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		return nil
 	},
 	"open_meme_modal": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		if err != nil {
+			return err
+		}
+		currentFrame := messageSession.GetCurrentFrame()
+		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
+		if err != nil {
+			return err
+		}
+		defaultCaption := ""
+		for _, sub := range(caption.Subtitles) {
+			defaultCaption += sub.Content + " "
+		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
@@ -165,7 +191,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 								CustomID:    "caption",
 								Label:       "Meme Text",
 								Style:       discordgo.TextInputParagraph,
-								Placeholder: "",
+								Value: defaultCaption,
 								Required:    true,
 							},
 						},
