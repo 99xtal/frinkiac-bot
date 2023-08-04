@@ -72,6 +72,7 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 		if err != nil {
 			return err
 		}
+		frinkiacSession.CurrentFrameCaption = &caption
 	
 		currentFrame := frinkiacSession.GetCurrentFrame() 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -103,6 +104,8 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		if err != nil {
 			return err
 		}
+		messageSession.CurrentFrameCaption = &caption
+
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -130,6 +133,8 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		if err != nil {
 			return err
 		}
+		messageSession.CurrentFrameCaption = &caption
+
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -170,13 +175,9 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		if err != nil {
 			return err
 		}
-		currentFrame := messageSession.GetCurrentFrame()
-		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
-		if err != nil {
-			return err
-		}
+		currentFrameCaption := messageSession.CurrentFrameCaption
 		defaultCaption := ""
-		for _, sub := range(caption.Subtitles) {
+		for _, sub := range(currentFrameCaption.Subtitles) {
 			defaultCaption += sub.Content + " "
 		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

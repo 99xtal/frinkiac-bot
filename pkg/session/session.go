@@ -8,6 +8,7 @@ type FrinkiacSession struct {
 	Cursor int
 	memeMode bool
 	SearchResults []*api.Frame
+	CurrentFrameCaption *api.Caption
 }
 
 func (s *FrinkiacSession) NextPage() {
