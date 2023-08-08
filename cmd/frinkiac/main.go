@@ -99,8 +99,10 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		if err != nil {
 			return err
 		}
-		messageSession.NextPage()
-		currentFrame := messageSession.GetCurrentFrame()
+		currentFrame, err := messageSession.NextResult()
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
 		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
 		if err != nil {
 			return err
@@ -129,8 +131,10 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		if err != nil {
 			return err
 		}
-		messageSession.PrevPage()
-		currentFrame := messageSession.GetCurrentFrame()
+		currentFrame, err := messageSession.PreviousResult()
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
 		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
 		if err != nil {
 			return err
