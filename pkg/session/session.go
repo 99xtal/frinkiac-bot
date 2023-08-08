@@ -23,12 +23,12 @@ func (s *FrinkiacSession) NextResult() (*api.Frame, error) {
 }
 
 func (s *FrinkiacSession) PreviousResult() (*api.Frame, error) {
-	if s.Cursor < 0 { 
+	if s.Cursor < 0 {
 		return nil, errors.New("Attempted to access out of bounds")
 	}
 
 	s.Cursor -= 1
-	return s.GetCurrentFrame(),  nil
+	return s.GetCurrentFrame(), nil
 }
 
 func (s *FrinkiacSession) GetCurrentFrame() *api.Frame {

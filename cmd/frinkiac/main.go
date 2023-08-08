@@ -95,11 +95,11 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 
 var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error{
 	"next_result": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		interactionSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
 		}
-		currentFrame, err := messageSession.NextResult()
+		currentFrame, err := interactionSession.NextResult()
 		if err != nil {
 			fmt.Printf("%v", err)
 		}
@@ -107,31 +107,31 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		if err != nil {
 			return err
 		}
-		messageSession.CurrentFrameCaption = &caption
-		messageSession.CurrentImageLink = currentFrame.GetPhotoUrl()
+		interactionSession.CurrentFrameCaption = &caption
+		interactionSession.CurrentImageLink = currentFrame.GetPhotoUrl()
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(messageSession.CurrentImageLink),
+					components.ImageLinkEmbed(interactionSession.CurrentImageLink),
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults)-1),
+					components.PreviewActionsComponent(interactionSession.Cursor == 0, interactionSession.Cursor == len(interactionSession.SearchResults)-1),
 				},
 			},
 		})
-		sessionManager.Set(i.Message.Interaction.ID, messageSession)
+		sessionManager.Set(i.Message.Interaction.ID, interactionSession)
 		return nil
 	},
 	"previous_result": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		interactionSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
 		}
-		currentFrame, err := messageSession.PreviousResult()
+		currentFrame, err := interactionSession.PreviousResult()
 		if err != nil {
 			fmt.Printf("%v", err)
 		}
@@ -139,27 +139,27 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		if err != nil {
 			return err
 		}
-		messageSession.CurrentFrameCaption = &caption
-		messageSession.CurrentImageLink = currentFrame.GetPhotoUrl()
+		interactionSession.CurrentFrameCaption = &caption
+		interactionSession.CurrentImageLink = currentFrame.GetPhotoUrl()
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(messageSession.CurrentImageLink),
+					components.ImageLinkEmbed(interactionSession.CurrentImageLink),
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults)-1),
+					components.PreviewActionsComponent(interactionSession.Cursor == 0, interactionSession.Cursor == len(interactionSession.SearchResults)-1),
 				},
 			},
 		})
-		sessionManager.Set(i.Message.Interaction.ID, messageSession)
+		sessionManager.Set(i.Message.Interaction.ID, interactionSession)
 		return nil
 	},
 	"send_frame": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		interactionSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
 		}
@@ -168,7 +168,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(messageSession.CurrentImageLink),
+					components.ImageLinkEmbed(interactionSession.CurrentImageLink),
 				},
 			},
 		})
@@ -176,11 +176,11 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		return nil
 	},
 	"open_meme_modal": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		interactionSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
 		}
-		currentFrameCaption := messageSession.CurrentFrameCaption
+		currentFrameCaption := interactionSession.CurrentFrameCaption
 		defaultCaption := ""
 		for _, sub := range currentFrameCaption.Subtitles {
 			defaultCaption += sub.Content + " "
@@ -211,28 +211,28 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 
 var modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error{
 	"generate_meme_modal": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
+		interactionSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
 		}
-		currentFrame := messageSession.GetCurrentFrame()
+		currentFrame := interactionSession.GetCurrentFrame()
 		modalComponents := i.ModalSubmitData().Components
 		memeCaption := modalComponents[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
 		caption, err := frinkiacClient.GetCaption(currentFrame.Episode, fmt.Sprint(currentFrame.Timestamp))
 		if err != nil {
 			return err
 		}
-		messageSession.CurrentImageLink = currentFrame.GetCaptionPhotoUrl(memeCaption)
+		interactionSession.CurrentImageLink = currentFrame.GetCaptionPhotoUrl(memeCaption)
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Flags: discordgo.MessageFlagsEphemeral,
 				Embeds: []*discordgo.MessageEmbed{
-					components.ImageLinkEmbed(messageSession.CurrentImageLink),
+					components.ImageLinkEmbed(interactionSession.CurrentImageLink),
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults)-1),
+					components.PreviewActionsComponent(interactionSession.Cursor == 0, interactionSession.Cursor == len(interactionSession.SearchResults)-1),
 				},
 			},
 		})
