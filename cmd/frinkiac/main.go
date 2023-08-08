@@ -85,7 +85,7 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(frinkiacSession.Cursor == 0, frinkiacSession.Cursor == len(frinkiacSession.SearchResults)-1),
+					components.PreviewActionsComponent(frinkiacSession),
 				},
 			},
 		})
@@ -119,7 +119,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(interactionSession.Cursor == 0, interactionSession.Cursor == len(interactionSession.SearchResults)-1),
+					components.PreviewActionsComponent(interactionSession),
 				},
 			},
 		})
@@ -151,7 +151,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(interactionSession.Cursor == 0, interactionSession.Cursor == len(interactionSession.SearchResults)-1),
+					components.PreviewActionsComponent(interactionSession),
 				},
 			},
 		})
@@ -232,7 +232,7 @@ var modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.Int
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(interactionSession.Cursor == 0, interactionSession.Cursor == len(interactionSession.SearchResults)-1),
+					components.PreviewActionsComponent(interactionSession),
 				},
 			},
 		})

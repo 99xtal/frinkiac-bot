@@ -1,6 +1,9 @@
 package components
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/99xtal/frinkiac-bot/pkg/session"
+	"github.com/bwmarrin/discordgo"
+)
 
 func ImageLinkEmbed(url string) *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
@@ -10,20 +13,20 @@ func ImageLinkEmbed(url string) *discordgo.MessageEmbed {
 	}
 }
 
-func PreviewActionsComponent(startReached bool, endReached bool) discordgo.MessageComponent {
+func PreviewActionsComponent(s *session.FrinkiacSession) discordgo.MessageComponent {
 	return discordgo.ActionsRow{
 		Components: []discordgo.MessageComponent{
 			discordgo.Button{
 				Style:    discordgo.SecondaryButton,
 				Label:    "Previous",
 				CustomID: "previous_result",
-				Disabled: startReached,
+				Disabled: s.Cursor == 0,
 			},
 			discordgo.Button{
 				Style:    discordgo.SecondaryButton,
 				Label:    "Next",
 				CustomID: "next_result",
-				Disabled: endReached,
+				Disabled: s.Cursor == len(s.SearchResults),
 			},
 			discordgo.Button{
 				Style:    discordgo.SuccessButton,
