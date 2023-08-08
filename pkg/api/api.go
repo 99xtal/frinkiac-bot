@@ -13,7 +13,7 @@ import (
 
 var client = &http.Client{}
 
-//Frames Holds data about a Frinkiac (or Morbotron) search
+// Frames Holds data about a Frinkiac (or Morbotron) search
 type Frame struct {
 	ID        int    `json:"Id"`
 	Episode   string `json:"Episode"`
@@ -21,34 +21,33 @@ type Frame struct {
 }
 
 type Episode struct {
-	ID	int	`json:"Id"`
-	Key	string	`json:"Key"`
-	Season	int `json:"Season"`
-	EpisodeNumber int `json:"EpisodeNumber"`
-	Title	string	`json:"Title"`
-	Director string `json:"Director"`
-	Writer string `json:"Writer"`
-	OriginalAirDate	string	`json:"OriginalAirDate"`
-	WikiLink	string	`json:"WikiLeak"`
+	ID              int    `json:"Id"`
+	Key             string `json:"Key"`
+	Season          int    `json:"Season"`
+	EpisodeNumber   int    `json:"EpisodeNumber"`
+	Title           string `json:"Title"`
+	Director        string `json:"Director"`
+	Writer          string `json:"Writer"`
+	OriginalAirDate string `json:"OriginalAirDate"`
+	WikiLink        string `json:"WikiLeak"`
 }
 
 type Subtitle struct {
-	ID	int `json:"Id"`
-	RepresentativeTimestamp	string	`json:"RepresentativeTimestamp"`
-	Episode	string	`json:"Episode"`
-	StartTimestamp	string `json:"StartTimestamp"`
-	EndTimestamp	string	`json:"EndTimestamp"`
-	Content	string	`json:"Content"`
-	Language	string `json:"Language"`
+	ID                      int    `json:"Id"`
+	RepresentativeTimestamp string `json:"RepresentativeTimestamp"`
+	Episode                 string `json:"Episode"`
+	StartTimestamp          string `json:"StartTimestamp"`
+	EndTimestamp            string `json:"EndTimestamp"`
+	Content                 string `json:"Content"`
+	Language                string `json:"Language"`
 }
 
 type Caption struct {
-	Episode Episode `json:"Episode"`
-	Frame	Frame	`json:"Frame"`
-	Subtitles	[]Subtitle	`json:"Subtitles"`
-	Nearby	[]Frame	`json:"Nearby"`
+	Episode   Episode    `json:"Episode"`
+	Frame     Frame      `json:"Frame"`
+	Subtitles []Subtitle `json:"Subtitles"`
+	Nearby    []Frame    `json:"Nearby"`
 }
-
 
 func (f *Frame) GetPhotoUrl() string {
 	return fmt.Sprintf("http://frinkiac.com/img/%s/%d.jpg", f.Episode, f.Timestamp)
@@ -60,7 +59,7 @@ func (f *Frame) GetCaptionPhotoUrl(caption string) string {
 	return fmt.Sprintf("http://frinkiac.com/meme/%s/%d.jpg?b64lines=%s", f.Episode, f.Timestamp, b64Caption)
 }
 
-type FrinkiacClient struct {}
+type FrinkiacClient struct{}
 
 func (f *FrinkiacClient) Search(query string) ([]*Frame, error) {
 	var info []*Frame
@@ -100,8 +99,7 @@ func (f *FrinkiacClient) GetCaption(episode string, timestamp string) (Caption, 
 	}
 	json.Unmarshal(body, &info)
 	return info, nil
-} 
-
+}
 
 func NewFrinkiacClient() *FrinkiacClient {
 	return &FrinkiacClient{}

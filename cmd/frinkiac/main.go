@@ -20,10 +20,10 @@ var err error
 
 var (
 	applicationID = os.Getenv("APPLICATION_ID")
-	botAPIToken = os.Getenv("DISCORD_API_TOKEN")
+	botAPIToken   = os.Getenv("DISCORD_API_TOKEN")
 )
 
-var interactionSessions map[string]*session.FrinkiacSession;
+var interactionSessions map[string]*session.FrinkiacSession
 
 func registerCommands() error {
 	data, err := os.ReadFile("commands.json")
@@ -31,14 +31,14 @@ func registerCommands() error {
 		return err
 	}
 
-	var configCommands []discordgo.ApplicationCommand;
+	var configCommands []discordgo.ApplicationCommand
 	err = json.Unmarshal(data, &configCommands)
 	if err != nil {
 		return err
 	}
 
 	var commandPtrs []*discordgo.ApplicationCommand
-	for _, cmd := range(configCommands) {
+	for _, cmd := range configCommands {
 		commandPtrs = append(commandPtrs, &cmd)
 	}
 
@@ -46,8 +46,8 @@ func registerCommands() error {
 	return err
 }
 
-var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	"frinkiac": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error{
+	"frinkiac": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		searchQuery := i.ApplicationCommandData().Options[0]
 		searchResults, err := frinkiacClient.Search(searchQuery.StringValue())
 		if err != nil {
@@ -56,13 +56,13 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 		frinkiacSession := session.NewFrinkiacSession()
 		frinkiacSession.SearchResults = searchResults
 		sessionManager.Set(i.ID, frinkiacSession)
-	
+
 		if len(frinkiacSession.SearchResults) == 0 {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Content: "No frames found for search query: '" + searchQuery.StringValue() + "'",
-					Flags: discordgo.MessageFlagsEphemeral,
+					Flags:   discordgo.MessageFlagsEphemeral,
 				},
 			})
 			return nil
@@ -73,8 +73,8 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 			return err
 		}
 		frinkiacSession.CurrentFrameCaption = &caption
-	
-		currentFrame := frinkiacSession.GetCurrentFrame() 
+
+		currentFrame := frinkiacSession.GetCurrentFrame()
 		frinkiacSession.CurrentImageLink = currentFrame.GetPhotoUrl()
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -85,16 +85,16 @@ var applicationCommandHandlers = map[string]func(s *discordgo.Session, i *discor
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(frinkiacSession.Cursor == 0, frinkiacSession.Cursor == len(frinkiacSession.SearchResults) - 1),
+					components.PreviewActionsComponent(frinkiacSession.Cursor == 0, frinkiacSession.Cursor == len(frinkiacSession.SearchResults)-1),
 				},
 			},
 		})
-		return nil	
+		return nil
 	},
 }
 
-var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	"next_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error{
+	"next_result": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
@@ -117,14 +117,14 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
+					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults)-1),
 				},
 			},
 		})
 		sessionManager.Set(i.Message.Interaction.ID, messageSession)
 		return nil
 	},
-	"previous_result": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	"previous_result": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
@@ -147,14 +147,14 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
+					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults)-1),
 				},
 			},
 		})
 		sessionManager.Set(i.Message.Interaction.ID, messageSession)
 		return nil
 	},
-	"send_frame": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	"send_frame": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
@@ -171,30 +171,30 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 		sessionManager.Delete(i.Message.Interaction.ID)
 		return nil
 	},
-	"open_meme_modal": func (s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	"open_meme_modal": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
 			return err
 		}
 		currentFrameCaption := messageSession.CurrentFrameCaption
 		defaultCaption := ""
-		for _, sub := range(currentFrameCaption.Subtitles) {
+		for _, sub := range currentFrameCaption.Subtitles {
 			defaultCaption += sub.Content + " "
 		}
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
 				CustomID: "generate_meme_modal",
-				Title: "Generate Meme",
+				Title:    "Generate Meme",
 				Components: []discordgo.MessageComponent{
 					discordgo.ActionsRow{
 						Components: []discordgo.MessageComponent{
 							discordgo.TextInput{
-								CustomID:    "caption",
-								Label:       "Meme Text",
-								Style:       discordgo.TextInputParagraph,
-								Value: defaultCaption,
-								Required:    true,
+								CustomID: "caption",
+								Label:    "Meme Text",
+								Style:    discordgo.TextInputParagraph,
+								Value:    defaultCaption,
+								Required: true,
 							},
 						},
 					},
@@ -205,7 +205,7 @@ var messageComponentHandlers = map[string]func(s *discordgo.Session, i *discordg
 	},
 }
 
-var modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+var modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate) error{
 	"generate_meme_modal": func(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 		messageSession, err := sessionManager.Get(i.Message.Interaction.ID)
 		if err != nil {
@@ -228,7 +228,7 @@ var modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.Int
 				},
 				Content: fmt.Sprintf("\"%s\"\nSeason %d / Episode %d", caption.Episode.Title, caption.Episode.Season, caption.Episode.EpisodeNumber),
 				Components: []discordgo.MessageComponent{
-					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults) - 1),
+					components.PreviewActionsComponent(messageSession.Cursor == 0, messageSession.Cursor == len(messageSession.SearchResults)-1),
 				},
 			},
 		})
@@ -250,11 +250,11 @@ func init() {
 }
 
 func main() {
-	s.AddHandler(func (s *discordgo.Session, r *discordgo.Ready) {
+	s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("Bot is running")
 	})
 
-	s.AddHandler(func (s *discordgo.Session, i *discordgo.InteractionCreate) {
+	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		log.Println("InteractionCreate", "appID:"+i.AppID, "interactionId:"+i.ID, i.Type.String())
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:

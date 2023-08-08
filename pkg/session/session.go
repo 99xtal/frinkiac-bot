@@ -5,21 +5,21 @@ import (
 )
 
 type FrinkiacSession struct {
-	Cursor int
-	memeMode bool
-	SearchResults []*api.Frame
+	Cursor              int
+	memeMode            bool
+	SearchResults       []*api.Frame
 	CurrentFrameCaption *api.Caption
-	CurrentImageLink string
+	CurrentImageLink    string
 }
 
 func (s *FrinkiacSession) NextPage() {
-	if (s.Cursor < len(s.SearchResults)) {
+	if s.Cursor < len(s.SearchResults) {
 		s.Cursor += 1
 	}
 }
 
 func (s *FrinkiacSession) PrevPage() {
-	if (s.Cursor > 0) {
+	if s.Cursor > 0 {
 		s.Cursor -= 1
 	}
 }
@@ -29,13 +29,13 @@ func (s *FrinkiacSession) GetCurrentFrame() *api.Frame {
 }
 
 func (s *FrinkiacSession) toggleMemeMode() {
-	s.memeMode = !s.memeMode;
+	s.memeMode = !s.memeMode
 }
 
 func NewFrinkiacSession() *FrinkiacSession {
 	return &FrinkiacSession{
-		Cursor: 0,
+		Cursor:        0,
 		SearchResults: []*api.Frame{},
-		memeMode: false,
+		memeMode:      false,
 	}
 }

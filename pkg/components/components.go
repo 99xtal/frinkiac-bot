@@ -14,25 +14,25 @@ func PreviewActionsComponent(startReached bool, endReached bool) discordgo.Messa
 	return discordgo.ActionsRow{
 		Components: []discordgo.MessageComponent{
 			discordgo.Button{
-				Style: discordgo.SecondaryButton,
-				Label: "Previous",
+				Style:    discordgo.SecondaryButton,
+				Label:    "Previous",
 				CustomID: "previous_result",
 				Disabled: startReached,
 			},
 			discordgo.Button{
-				Style: discordgo.SecondaryButton,
-				Label: "Next",
+				Style:    discordgo.SecondaryButton,
+				Label:    "Next",
 				CustomID: "next_result",
 				Disabled: endReached,
 			},
 			discordgo.Button{
-				Style: discordgo.SuccessButton,
-				Label: "Make Meme",
+				Style:    discordgo.SuccessButton,
+				Label:    "Make Meme",
 				CustomID: "open_meme_modal",
 			},
 			discordgo.Button{
-				Style: discordgo.PrimaryButton,
-				Label: "Send",
+				Style:    discordgo.PrimaryButton,
+				Label:    "Send",
 				CustomID: "send_frame",
 			},
 		},

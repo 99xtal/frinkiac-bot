@@ -6,7 +6,7 @@ import (
 )
 
 type SessionManager struct {
-	sessions	map[string]*FrinkiacSession
+	sessions map[string]*FrinkiacSession
 }
 
 func (m *SessionManager) Get(interactionId string) (*FrinkiacSession, error) {
